@@ -1,4 +1,4 @@
-# Lab Simulators — Diffusion Market Microstructure Sandbox
+# DeepLOB — Generative Diffusion for Synthetic Market Microstructure
 
 An academic simulator for **synthetic market path generation** and **stylized-fact validation**.
 
@@ -24,7 +24,7 @@ Written to the repo root for simplicity:
 
 ## Repository structure
 
-This repository contains **only** the Python research stack (no web UI or portfolio site).
+This repository contains **only** the Python research stack (no web UI, Next.js, or portfolio pages).
 
 ```
 .
