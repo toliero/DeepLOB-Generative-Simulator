@@ -41,15 +41,14 @@ $ python research_main.py --rough_vol --coupling 0.85
 import argparse
 import json
 import numpy as np
+import matplotlib
+matplotlib.use('Agg') # Force backend to not display windows
 import matplotlib.pyplot as plt
 from datetime import datetime
 import pandas as pd
 from statsmodels.tsa.stattools import acf
 
 # Import the specialized sub-agents.
-# Note: Fallbacks are provided to map to the previously created files if the 
-# exact names from the prompt (data_retrieval, model_architecture, market_simulator) 
-# don't exist as such.
 try:
     import data_retrieval
     import model_architecture
@@ -89,40 +88,76 @@ def simulate_stylized_facts(real_returns, synthetic_returns, args):
     acf_synth = acf(np.abs(synthetic_returns), nlags=lags, fft=True)
     
     # --- Generate Matplotlib Dashboard ---
-    fig = plt.figure(figsize=(18, 10))
-    fig.suptitle(f"Market Simulator Dashboard | Rough Vol: {args.rough_vol} | Coupling (\u03C1): {args.coupling}", fontsize=16)
+    # We will arrange this in a 2x2 grid
+    # Adjusted size slightly so it's not "too big" in the browser and changed to color
+    fig = plt.figure(figsize=(10, 8))
+    # Removed the black and white theme, added color back
+    
+    fig.suptitle(f"Agentic SDE Simulator | Rough Vol: {args.rough_vol} | Coupling (\u03C1): {args.coupling}", fontsize=14, fontweight='bold', y=0.98)
     
     # 1. Log-Return Distribution (Fat Tails check)
     ax1 = plt.subplot(2, 2, 1)
-    ax1.hist(real_returns, bins=100, alpha=0.5, density=True, label='Real Returns', color='blue')
-    ax1.hist(synthetic_returns, bins=100, alpha=0.5, density=True, label='Synthetic Returns', color='orange')
-    ax1.set_title("Log-Return Distribution (Density)")
-    ax1.set_yscale('log')  # Log scale to visualize fat tails
-    ax1.set_ylabel("Log Density")
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
+    ax1.hist(real_returns, bins=80, alpha=0.6, density=True, label='Real Market', color='tab:blue')
+    ax1.hist(synthetic_returns, bins=80, alpha=0.6, density=True, label='Synthetic Path', color='tab:orange')
+    ax1.set_title("Log-Return Distribution (Fat Tails)", fontsize=10)
+    ax1.set_yscale('log')
+    ax1.set_ylabel("Log Density", fontsize=8)
+    ax1.legend(fontsize=8)
+    ax1.grid(True, alpha=0.2)
+    ax1.tick_params(axis='both', which='major', labelsize=8)
     
     # 2. Volatility Clustering
     ax2 = plt.subplot(2, 2, 2)
-    ax2.plot(np.abs(real_returns[-args.steps:]), alpha=0.6, label='Real |Returns|', color='blue', lw=0.8)
-    ax2.plot(np.abs(synthetic_returns[-args.steps:]), alpha=0.6, label='Synthetic |Returns|', color='orange', lw=0.8)
-    ax2.set_title("Volatility Clustering (|Returns| over time)")
-    ax2.legend()
-    ax2.grid(True, alpha=0.3)
+    ax2.plot(np.abs(real_returns[-args.steps:]), alpha=0.7, label='Real |R|', color='tab:blue', lw=0.8)
+    ax2.plot(np.abs(synthetic_returns[-args.steps:]), alpha=0.7, label='Synthetic |R|', color='tab:orange', lw=0.8)
+    ax2.set_title("Volatility Clustering (|Returns| over time)", fontsize=10)
+    ax2.legend(fontsize=8)
+    ax2.grid(True, alpha=0.2)
+    ax2.tick_params(axis='both', which='major', labelsize=8)
     
-    # 3. Autocorrelation of Absolute Returns (Long Memory check)
-    ax3 = plt.subplot(2, 1, 2)
-    ax3.bar(np.arange(len(acf_real)), acf_real, alpha=0.5, label='Real Volatility ACF', color='blue')
-    ax3.plot(np.arange(len(acf_synth)), acf_synth, alpha=0.8, label='Synthetic Volatility ACF', color='orange', marker='o')
-    ax3.set_title("Autocorrelation of Absolute Returns (Long Memory / Hurst dynamics)")
-    ax3.set_xlabel("Lags")
-    ax3.set_ylabel("ACF")
-    ax3.legend()
-    ax3.grid(True, alpha=0.3)
-    
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig('market_dashboard.png', dpi=300)
+    # 3. Autocorrelation of Absolute Returns
+    ax3 = plt.subplot(2, 2, 3)
+    ax3.bar(np.arange(len(acf_real)), acf_real, alpha=0.5, label='Real ACF', color='tab:blue')
+    ax3.plot(np.arange(len(acf_synth)), acf_synth, alpha=0.8, label='Synthetic ACF', color='tab:red', marker='.', markersize=4)
+    ax3.set_title("Long Memory (Autocorrelation)", fontsize=10)
+    ax3.set_xlabel("Lags", fontsize=8)
+    ax3.set_ylabel("ACF", fontsize=8)
+    ax3.legend(fontsize=8)
+    ax3.grid(True, alpha=0.2)
+    ax3.tick_params(axis='both', which='major', labelsize=8)
+
+    # 4. Synthesized Density Heatmap (Limit Order Book Proxy / Return evolution)
+    # To create a heatmap, we will look at rolling histograms of the synthetic data
+    ax4 = plt.subplot(2, 2, 4)
+    # Reshape synthetic returns into windows to simulate time evolution of density
+    window_size = 50
+    num_windows = len(synthetic_returns) // window_size
+    if num_windows > 1:
+        reshaped_returns = synthetic_returns[:num_windows * window_size].reshape((num_windows, window_size))
+        # Compute histogram for each window
+        hist_matrix = []
+        bins = np.linspace(-np.max(np.abs(synthetic_returns)), np.max(np.abs(synthetic_returns)), 40)
+        for w in reshaped_returns:
+            counts, _ = np.histogram(w, bins=bins, density=True)
+            hist_matrix.append(counts)
+        
+        hist_matrix = np.array(hist_matrix).T # Transpose so time is x-axis, return is y-axis
+        
+        # Plot the heatmap - changed cmap to 'viridis' for color
+        cax = ax4.imshow(hist_matrix, aspect='auto', origin='lower', cmap='viridis', interpolation='nearest')
+        ax4.set_title("Synthetic Return Density Evolution", fontsize=10)
+        ax4.set_xlabel("Time Windows", fontsize=8)
+        ax4.set_ylabel("Return Bins", fontsize=8)
+        fig.colorbar(cax, ax=ax4, orientation='vertical', fraction=0.046, pad=0.04)
+        ax4.tick_params(axis='both', which='major', labelsize=8)
+    else:
+        ax4.text(0.5, 0.5, "Insufficient data for heatmap", ha='center', va='center')
+        ax4.set_title("Return Density Heatmap", fontsize=10)
+
+    plt.tight_layout(rect=[0, 0.03, 1, 0.96])
+    plt.savefig('market_dashboard.png', dpi=150, bbox_inches='tight') # Reduced DPI to prevent it from being too big
     print("[Stat-Validation Agent] Dashboard saved to 'market_dashboard.png'.")
+    plt.close()
     
     # --- Generate JSON Report ---
     report = {
@@ -153,7 +188,7 @@ def main():
     args = parse_arguments()
     
     print("\n" + "="*60)
-    print("INITIALIZING STATE-OF-THE-ART AGENTIC MARKET SIMULATOR")
+    print("INITIALIZING AGENTIC MARKET SIMULATOR")
     print("="*60)
     
     # 1. Data Retrieval Phase

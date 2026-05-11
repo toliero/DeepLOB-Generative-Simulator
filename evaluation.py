@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg') # Ensure it does not pop up a window locally
 import matplotlib.pyplot as plt
 from scipy.stats import ks_2samp
 
@@ -46,11 +48,6 @@ def evaluate_synthetic_data(real_returns, synthetic_returns):
     plt.tight_layout()
     plt.savefig('evaluation_results.png')
     print("Saved evaluation plots to 'evaluation_results.png'")
-    
-    try:
-        plt.show()
-    except Exception as e:
-        print("Could not display plot interactively. Please check 'evaluation_results.png'.")
 
 if __name__ == "__main__":
     # --- Dummy Data Generation for Testing ---

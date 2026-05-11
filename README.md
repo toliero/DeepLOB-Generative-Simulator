@@ -1,39 +1,55 @@
-# DeepLOB: Generative Diffusion for Synthetic Market Microstructure
+# Lab Simulators — Diffusion Market Microstructure Sandbox
 
-## Project Overview
-This research project implements a **conditional generative diffusion framework** designed to synthesize high-fidelity Limit Order Book (LOB) dynamics. By leveraging non-equilibrium thermodynamics-inspired modeling, the simulator reconstructs intraday liquidity patterns and price formation processes that characterize modern electronic markets.
+An academic simulator for **synthetic market path generation** and **stylized-fact validation**.
 
-## Scientific Objective
-The primary goal is to address the limitations of traditional continuous-time Markov processes in LOB modeling, which often struggle to capture the **Non-Markovian** nature and heavy-tailed return distributions observed in high-frequency data. 
+The intent is to provide a controlled environment for:
+- non-Markovian dynamics experiments,
+- rough-volatility toggles,
+- systemic coupling stress tests,
+- and reproducible “paper-style” diagnostics (plots + JSON report).
 
-This framework specifically investigates:
-* **Rough Volatility Regimes:** Modeling volatility as a fractional process where the Hurst Index ($H$) is strictly less than 0.5.
-* **Stylized Facts Reproduction:** Validating synthetic data against empirical benchmarks, including volatility clustering, autocorrelation decay, and the leverage effect.
-* **Systemic Risk & Algorithmic Coupling:** Analyzing how homogenized execution strategies ($\rho$) lead to percolation phase transitions and liquidity collapse.
+## Core idea (high level)
 
+The orchestration script (`research_main.py`) coordinates:
+- data retrieval and preprocessing,
+- a diffusion-style generative pipeline (PyTorch),
+- and evaluation of stylized facts (distributional tests, volatility clustering, etc.).
 
+## Outputs
 
-## Technical Architecture
-* **Generative Core:** A **Deep Diffusion Model (DDM)** implemented in **PyTorch**. The model learns the joint distribution of price levels and order volume by reversing a Gaussian noise injection process over $T$ diffusion steps.
-* **Stochastic Parameterization:** Users can modulate the roughness of the volatility manifold via the CLI, allowing for the simulation of "Flash Crash" scenarios or stable, high-liquidity regimes.
-* **Data Pipeline:** An automated ETL workflow that consumes public equity data (via `yfinance` or LOBSTER formats) to condition the generative process on real-world macroeconomic indicators.
+Written to the repo root for simplicity:
+- `market_dashboard.png` — Matplotlib dashboard of synthetic vs real diagnostics
+- `experiment_report.json` — structured experiment metadata
+- `evaluation_results.png` — additional evaluation visuals
 
-## Mathematical Foundation
-The simulation engine utilizes a reverse-time Stochastic Differential Equation (SDE) to transform Gaussian noise into structured LOB states. By conditioning the score function on historical volatility and volume imbalance, the model captures the path-dependency essential for accurate backtesting of execution algorithms.
+## Repository structure
 
+```
+lab-simulators/
+  research_main.py      # main orchestrator (CLI)
+  diffusion_model.py    # model architecture / generation
+  data_processing.py    # data retrieval + feature pipeline (yfinance-based)
+  evaluation.py         # evaluation suite + plots
+  requirements.txt
+```
 
+## Quickstart
 
-## Key Parameters
-| Parameter | Symbol | Scientific Significance |
-| :--- | :--- | :--- |
-| **Hurst Exponent** | $H$ | Controls the "roughness" and long-term memory of the volatility path. |
-| **Coupling Coeff.** | $\rho$ | Measures the degree of algorithmic resonance among market participants. |
-| **Diffusion Steps** | $T$ | Determines the resolution of the generative reverse-SDE process. |
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
 
-## Research Applications
-1.  **PhD Research:** Provides a modular environment for testing **Stochastic Optimal Control** theories and neural operators under non-Markovian volatility.
-2.  **Quantitative Trading:** Enables high-fidelity backtesting of execution algorithms (TWAP/VWAP) by generating statistically consistent market scenarios.
-3.  **Risk Management:** Facilitates "Stress-Testing-as-a-Service," evaluating portfolio sensitivity to sudden shifts in liquidity density.
+# baseline run
+python3 research_main.py --coupling 0.2
 
----
-*Developed by Eliott Elkeslassy — 2026*
+# rough volatility regime (example)
+python3 research_main.py --rough_vol --hurst 0.10 --coupling 0.35
+```
+
+## Notes
+
+- **PyTorch is required** for the diffusion components. If you don’t have it installed yet,
+  install via your preferred method (pip/conda) compatible with your machine.
+- `yfinance` intraday data availability is limited; the pipeline degrades gracefully to the maximum available window.
+
