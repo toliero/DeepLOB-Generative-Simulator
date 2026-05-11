@@ -3,5 +3,8 @@ __pycache__/
 .venv/
 venv/
 .DS_Store
+.idea/
+
+# Generated experiment outputs (keep repo source-only)
 *.png
 experiment_report.json

@@ -24,13 +24,16 @@ Written to the repo root for simplicity:
 
 ## Repository structure
 
+This repository contains **only** the Python research stack (no web UI or portfolio site).
+
 ```
-lab-simulators/
-  research_main.py      # main orchestrator (CLI)
-  diffusion_model.py    # model architecture / generation
-  data_processing.py    # data retrieval + feature pipeline (yfinance-based)
-  evaluation.py         # evaluation suite + plots
-  requirements.txt
+.
+├── research_main.py    # main orchestrator (CLI)
+├── diffusion_model.py  # model architecture / generation
+├── data_processing.py  # data retrieval + feature pipeline (yfinance-based)
+├── evaluation.py       # evaluation suite + plots
+├── requirements.txt
+└── README.md
 ```
 
 ## Quickstart
